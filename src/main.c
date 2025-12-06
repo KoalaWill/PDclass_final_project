@@ -5,6 +5,10 @@
 
 #include "resource_dir.h"   // utility header for SearchAndSetResourceDir
 
+#define MAX_COLS 30
+#define MAX_ROWS 30
+
+// Maneuver array
 const int Mode_Movement_Fuel[4][8][4]={/*mode 0*/{{0,0,1,1},{0,0,-1,1},{0,1,0,3},{0,-1,0,3},{1,2,0,3},{1,1,-1,3},{3,0,-2,3},{3,-1,-1,3}},
 									   /*mode 1*/{{1,1,0,1},{1,-1,0,1},{1,0,-1,3},{1,0,1,3},{2,0,-2,3},{2,-1,-1,3},{0,-2,0,3},{0,-1,1,3}},
 									   /*mode 2*/{{2,0,-1,1},{2,0,1,1},{2,-1,0,3},{2,1,0,3},{3,-2,0,3},{3,-1,1,3},{1,0,2,3},{1,1,1,3}},
@@ -16,11 +20,13 @@ const int Mode_Movement_Fuel[4][8][4]={/*mode 0*/{{0,0,1,1},{0,0,-1,1},{0,1,0,3}
 									   // O O        O O O        O O         X O O
 									   // O O                     O X
 
-// States
-typedef enum GameScreen { 
+                                       // App States
+typedef enum AppScreen { 
 	StartMenu = 0, 
-	MazeConfirm
-} GameScreen;
+	MazeConfirm,
+    AccessibilityCheck
+} AppScreen;
+
 // Start menu display variables
 // Window
 const int screenWidth = 1280;
@@ -41,8 +47,45 @@ int mazePixelWidth;
 int mazePixelHeight;
 int offsetX;
 int offsetY;
+// Accessibility check variables
+// queue
+typedef struct {
+    int x, y, mode;
+} State;
+typedef struct {
+    State *items;
+    int head, tail;
+    int capacity;
+} Queue;
+Queue* createQueue(int capacity) {
+    Queue* q = (Queue*)malloc(sizeof(Queue));
+    q->items = (State*)malloc(sizeof(State) * capacity);
+    q->head = 0;
+    q->tail = 0;
+    q->capacity = capacity;
+    return q;
+}
+int isQueueEmpty(Queue* q) { return q->head == q->tail; }
+void enqueue(Queue* q, State s) {
+    q->items[q->tail++] = s;
+}
+State dequeue(Queue* q) {
+    return q->items[q->head++];
+}
+Queue* q;
+State start_state;
+// A simple list to remember where objectives are
+struct { int x, y; bool reachable; } objectives[100]; 
+int objCount = 0;
+bool visited[MAX_ROWS][MAX_COLS][4];
+int reachableCount = 0;
+int nextMode;
+int dx;
+int dy;
+int nx;
+int ny;
 
-
+// Start menu
 // ASCII art
 const char *ascii_art[] = {
     " ________  ________  _________  ___  ___  ________ ___  ________   ________  _______   ________   ",
@@ -53,8 +96,6 @@ const char *ascii_art[] = {
     "   \\ \\__\\    \\ \\__\\ \\__\\   \\ \\__\\ \\ \\__\\ \\__\\ \\__\\   \\ \\__\\ \\__\\\\ \\__\\ \\_______\\ \\_______\\ \\_\\ \\_\\",
     "    \\ |__|     \\|__|\\|__|    \\|__|  \\|__|\\|__|\\|__|    \\|__|\\|__| \\|__|\\|_______|\\|_______|\\|_|\\|_|"
 };
-
-// Start menu
 void DrawGradientTitle() {
     // Gradient blue to orange
     Color startColor = {0, 100, 255, 255};
@@ -136,12 +177,23 @@ bool LoadMaze(const char *filename) {
     for (int i = 0; i < rows; i++) {
         maze[i] = (int *)malloc(cols * sizeof(int));
     }
-    // Reopen and read in data
+    // rewind and read in data
     rewind(inf);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             if (fscanf(inf, "%1d", &maze[i][j]) != 1) {
-                maze[i][j] = 5; // Default if read fails
+                maze[i][j] = 5; 
+            }
+            if(maze[i][j] == 2){
+                start_state.x = j;
+                start_state.y = i;
+                if(maze[i][j-1] == 2 && maze[i][j-2] == 2) {
+                    start_state.mode = 3;
+                    start_state.x = j-2;
+                }
+                if(maze[i][j-1] == 2) {
+                    start_state.mode = 2;
+                }
             }
         }
     }
@@ -177,7 +229,7 @@ void DrawMazeGrid() {
                 case 1: c = LIME; break;// Accessible
 				case 2: c = MAROON; break;// Starting point
 				case 3: c = BLUE; break;// Objective
-				default: c = RED;
+				default: c = BLACK;
             }
 
             DrawRectangle(x, y, cellSize, cellSize, c);
@@ -189,6 +241,100 @@ void DrawMazeGrid() {
     DrawText(TextFormat("Maze input detected, maze size: %d(rows) x %d(columns)", rows, cols), 10, screenHeight - 30, 20, GRAY);
     DrawText("PRESS [ENTER] TO CONFIRM MAZE MAP", 10, 10, 20, LIGHTGRAY);
 }
+// collision checker
+int CheckCarCollision(int x, int y, int mode) {
+    int body[6][2]; 
+
+    // Define car shape based on mode
+    switch(mode) {
+        case 0: { int b[6][2]={{0,0},{1,0},{0,1},{1,1},{0,2},{1,2}}; for(int k=0;k<6;k++){body[k][0]=b[k][0]; body[k][1]=b[k][1];} break; }
+        case 1: { int b[6][2]={{0,0},{-1,0},{-2,0},{0,1},{-1,1},{-2,1}}; for(int k=0;k<6;k++){body[k][0]=b[k][0]; body[k][1]=b[k][1];} break; }
+        case 2: { int b[6][2]={{0,0},{-1,0},{0,-1},{-1,-1},{0,-2},{-1,-2}}; for(int k=0;k<6;k++){body[k][0]=b[k][0]; body[k][1]=b[k][1];} break; }
+        case 3: { int b[6][2]={{0,0},{1,0},{2,0},{0,-1},{1,-1},{2,-1}}; for(int k=0;k<6;k++){body[k][0]=b[k][0]; body[k][1]=b[k][1];} break; }
+    }
+
+    for (int i = 0; i < 6; i++) {
+        int cx = x + body[i][0];
+        int cy = y + body[i][1];
+        if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) return 0; // out of bounds
+        if (maze[cy][cx] == 0) return 0; // wall
+    }
+    return 1; // safe
+}
+
+// accessibility check via BFS
+void CheckAccessibility() {
+    Queue* q = createQueue(MAX_ROWS * MAX_COLS * 4);
+    memset(visited, 0, sizeof(visited));
+    for(int r=0; r<rows; r++){
+        for(int c=0; c<cols; c++){
+            if(maze[r][c] == 3) {
+                objectives[objCount].x = c;
+                objectives[objCount].y = r;
+                objectives[objCount].reachable = false;
+                objCount++;
+            }
+        }
+    }
+    if (CheckCarCollision(start_state.x, start_state.y, start_state.mode)) {
+        visited[start_state.y][start_state.x][0] = true;
+        enqueue(q, (State){start_state.x, start_state.y, 0});
+    } else {
+        printf("Error: Car cannot fit at start position in Mode%d.\n", start_state.mode);
+        return;
+    }
+
+    // BFS
+    while (!isQueueEmpty(q)) {
+        State current = dequeue(q);
+        if (maze[current.y][current.x] == 3) {
+            // mark objective reachable
+            for(int i=0; i<objCount; i++) {
+                if(objectives[i].x == current.x && objectives[i].y == current.y) {
+                    objectives[i].reachable = true;
+                }
+            }
+        }
+
+        // try all directions
+        for (int i = 0; i < 8; i++) {
+            nextMode = Mode_Movement_Fuel[current.mode][i][0];
+            dx = Mode_Movement_Fuel[current.mode][i][1];
+            dy = Mode_Movement_Fuel[current.mode][i][2];
+            nx = current.x + dx;
+            ny = current.y + dy;
+
+            // check bounds
+            if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+
+            // If reachable
+            if (!visited[ny][nx][nextMode]) {
+                if (CheckCarCollision(nx, ny, nextMode)) {
+                    visited[ny][nx][nextMode] = true;
+                    enqueue(q, (State){nx, ny, nextMode});
+                }
+            }
+        }
+    }
+    // print it out.
+    printf("Reachable analysis via BFS:\n");
+    objCount = 0;
+    for(int i=0; i<objCount; i++) {
+        if(objectives[i].reachable) {
+            printf("Objective at (%d, %d) is ACCESSIBLE.\n", objectives[i].x, objectives[i].y);
+            reachableCount++;
+        } else {
+            printf("Objective at (%d, %d) is UNREACHABLE.\n", objectives[i].x, objectives[i].y);
+        }
+    }
+    
+    printf("\nSummary: %d / %d objectives reachable.\n", reachableCount, objCount);
+
+    // Cleanup
+    free(q->items);
+    free(q);
+    free(visited);
+}
 
 int main(void) {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -197,7 +343,7 @@ int main(void) {
 	// read input
     if(!mazeLoaded) mazeLoaded = LoadMaze("input.txt");
 	// init state
-    GameScreen currentScreen = StartMenu;
+    AppScreen currentScreen = StartMenu;
 
     while (!WindowShouldClose()) {
 		// State control
@@ -208,7 +354,7 @@ int main(void) {
         }
 		else if (currentScreen == MazeConfirm) {
 			if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-				currentScreen = StartMenu;
+				currentScreen = AccessibilityCheck;
 			}
 		}
 
@@ -216,13 +362,18 @@ int main(void) {
             ClearBackground(BLACK);
             switch(currentScreen) {
                 case StartMenu:
+                    ClearBackground(BLACK);
                     DrawGradientTitle();
 					DrawCredits();
 					DrawBlinkHint();
                     break;
                 case MazeConfirm:
+                    ClearBackground(BLACK);
                     DrawMazeGrid();
                     break;
+                case AccessibilityCheck:
+                    ClearBackground(BLACK);
+                    CheckAccessibility();
             }
 
         EndDrawing();
