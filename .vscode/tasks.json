@@ -9,11 +9,14 @@
             "command": "make",
             "windows": {
                 "command": "mingw32-make.exe",
+                "args": [
+
+                ]
             },
             "osx": {
                 "args": [
-                    "config=debug_arm64"
-                ],
+
+                ]
             },
             "group": {
                 "kind": "build",
@@ -22,7 +25,9 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "dependsOn":["UpdateMake"]
+            "dependsOn": [
+                "UpdateMake"
+            ]
         },
         {
             "label": "build release",
@@ -31,17 +36,17 @@
             "windows": {
                 "command": "mingw32-make.exe",
                 "args": [
-                    "config=release_x64"
+
                 ],
             },
             "linux": {
                 "args": [
-                    "config=release_x64"
+
                 ],
             },
             "osx": {
                 "args": [
-                    "config=release_arm64"
+
                 ],
             },
             "group": "build",
