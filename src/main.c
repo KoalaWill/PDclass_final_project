@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+#include <stdint.h> 
 
 #include "resource_dir.h"   // utility header for SearchAndSetResourceDir
 
@@ -78,6 +80,63 @@ int nextMode;
 int dxdy[2];
 int nx, ny;
 bool accessChecked;
+
+//TSP calculation variables
+bool solvedTSP;
+// Define a struct for the Priority Queue
+typedef struct {
+    int x, y;
+    int mode;
+    int mask; // Bitmask representing visited objectives
+    int cost; // Accumulated fuel cost
+} PQNode;
+// Minimal Min-Heap Implementation for Dijkstra
+typedef struct {
+    PQNode *nodes;
+    int size;
+    int capacity;
+} MinHeap;
+MinHeap* createMinHeap(int capacity) {
+    MinHeap* h = (MinHeap*)malloc(sizeof(MinHeap));
+    h->nodes = (PQNode*)malloc(sizeof(PQNode) * capacity);
+    h->size = 0;
+    h->capacity = capacity;
+    return h;
+}
+void resizeHeap(MinHeap* h) {
+    h->capacity *= 2;
+    h->nodes = (PQNode*)realloc(h->nodes, sizeof(PQNode) * h->capacity);
+}
+void pushHeap(MinHeap* h, PQNode n) {
+    if (h->size == h->capacity) resizeHeap(h);
+    int i = h->size++;
+    while (i > 0) {
+        int p = (i - 1) / 2;
+        if (h->nodes[p].cost <= n.cost) break;
+        h->nodes[i] = h->nodes[p];
+        i = p;
+    }
+    h->nodes[i] = n;
+}
+PQNode popHeap(MinHeap* h) {
+    PQNode ret = h->nodes[0];
+    PQNode n = h->nodes[--h->size];
+    int i = 0;
+    while (i * 2 + 1 < h->size) {
+        int a = i * 2 + 1;
+        int b = i * 2 + 2;
+        if (b < h->size && h->nodes[b].cost < h->nodes[a].cost) a = b;
+        if (h->nodes[a].cost >= n.cost) break;
+        h->nodes[i] = h->nodes[a];
+        i = a;
+    }
+    h->nodes[i] = n;
+    return ret;
+}
+void freeHeap(MinHeap* h) {
+    free(h->nodes);
+    free(h);
+}
 
 // Start menu
 const char *ascii_art[] = {
@@ -275,10 +334,6 @@ void CheckAccessibility() {
     // BFS
     while (!isQueueEmpty(q)) {
         State current = dequeue(q);
-        
-        // Check if we hit an objective (this check is simplistic, usually check vehicle body overlap)
-        // For grid based, we assume if the reference point or nearby is the objective. 
-        // Based on original code logic:
         if (maze[current.y][current.x] == 3) {
              for(int i=0; i<objCount; i++) {
                 if(objectives[i].x == current.x && objectives[i].y == current.y) {
@@ -311,9 +366,11 @@ void CheckAccessibility() {
         }
     }
     
-    // Final tally
     for(int i=0; i<objCount; i++) {
         if(objectives[i].reachable) reachableCount++;
+        else{
+            maze[objectives[i].y][objectives[i].x] = 1;
+        }
     }
 
     // Cleanup
@@ -363,12 +420,190 @@ void DrawAccessibilityResults() {
     }
 }
 
+// Core algorithm functions
+void DecodeIndex(size_t idx, int *r, int *c, int *m, int *mk, int cols, int maxMask) {
+    size_t temp = idx;
+    
+    // Constants based on the GET_IDX macro logic:
+    // idx = (r * cols * 4 * maxMask) + (c * 4 * maxMask) + (m * maxMask) + mk
+    
+    size_t stride_row = (size_t)cols * 4 * maxMask;
+    size_t stride_col = (size_t)4 * maxMask;
+    size_t stride_mode = (size_t)maxMask;
+
+    *r = (int)(temp / stride_row);
+    temp = temp % stride_row;
+
+    *c = (int)(temp / stride_col);
+    temp = temp % stride_col;
+
+    *m = (int)(temp / stride_mode);
+    *mk = (int)(temp % stride_mode);
+}
+
+void SolveTSP_Exact() {
+    printf("\n--- Starting Path Calculation ---\n");
+
+    if (objCount >= 15) {
+        printf("WARNING: Objective count (%d) >= 15. Skipping Exact Calculation.\n");
+        return;
+    }
+    if (objCount == 0) return;
+
+    // 1. Setup Memory
+    int maxMask = (1 << objCount);
+    size_t totalStates = (size_t)rows * cols * 4 * maxMask;
+    
+    int *dist = (int*)malloc(totalStates * sizeof(int));
+    size_t *parent = (size_t*)malloc(totalStates * sizeof(size_t)); // <--- NEW: Stores path history
+
+    if (!dist || !parent) {
+        printf("ERROR: Memory allocation failed.\n");
+        if(dist) free(dist);
+        if(parent) free(parent);
+        return;
+    }
+
+    // Initialize
+    for (size_t i = 0; i < totalStates; i++) {
+        dist[i] = INT_MAX;
+        parent[i] = SIZE_MAX; // Use SIZE_MAX as "No Parent"
+    }
+
+    MinHeap* pq = createMinHeap(10000);
+
+    // 2. Start State
+    int startMask = 0;
+    for (int i = 0; i < objCount; i++) {
+        if (objectives[i].x == start_state.x && objectives[i].y == start_state.y) {
+            startMask |= (1 << i);
+        }
+    }
+
+    // Index calculation macro (Must match DecodeIndex logic)
+    #define GET_IDX(r, c, m, mk) ( ((size_t)(r) * cols * 4 * maxMask) + ((size_t)(c) * 4 * maxMask) + ((size_t)(m) * maxMask) + (mk) )
+
+    size_t startIdx = GET_IDX(start_state.y, start_state.x, start_state.mode, startMask);
+    dist[startIdx] = 0;
+    
+    PQNode startNode = {start_state.x, start_state.y, start_state.mode, startMask, 0};
+    pushHeap(pq, startNode);
+
+    size_t finalStateIdx = SIZE_MAX;
+    int finalMinCost = -1;
+
+    // 3. Dijkstra Loop
+    while (pq->size > 0) {
+        PQNode u = popHeap(pq);
+        size_t uIdx = GET_IDX(u.y, u.x, u.mode, u.mask);
+
+        if (u.cost > dist[uIdx]) continue;
+
+        // Check Success Condition (Anywhere with full mask)
+        if (u.mask == (maxMask - 1)) {
+            finalMinCost = u.cost;
+            finalStateIdx = uIdx; // Save where we ended
+            break; 
+        }
+
+        // Neighbors
+        for (int i = 0; i < 8; i++) {
+            int nextMode = Mode_Movement_Fuel[u.mode][i][0];
+            int dx = Mode_Movement_Fuel[u.mode][i][1];
+            int dy = Mode_Movement_Fuel[u.mode][i][2];
+            int fuel = Mode_Movement_Fuel[u.mode][i][3];
+
+            int nx = u.x + dx;
+            int ny = u.y + dy;
+
+            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && maze[ny][nx] != 0) {
+                if (CheckCarCollision(nx, ny, nextMode)) {
+                    int newCost = u.cost + fuel;
+                    int newMask = u.mask;
+                    
+                    for (int k = 0; k < objCount; k++) {
+                        if (objectives[k].x == nx && objectives[k].y == ny) {
+                            newMask |= (1 << k);
+                        }
+                    }
+
+                    size_t vIdx = GET_IDX(ny, nx, nextMode, newMask);
+                    
+                    if (newCost < dist[vIdx]) {
+                        dist[vIdx] = newCost;
+                        parent[vIdx] = uIdx; // <--- RECORD HISTORY: "We came from uIdx"
+                        PQNode v = {nx, ny, nextMode, newMask, newCost};
+                        pushHeap(pq, v);
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Print Result & Reconstruct Path
+    if (finalMinCost != -1) {
+        printf("SUCCESS: Optimal path found! Total Fuel: %d\n", finalMinCost);
+        printf("\n--- Path Reconstruction ---\n");
+
+        // We need to backtrack from finalStateIdx to startIdx
+        // Since we don't know the path length, we use a dynamic list or a large static array.
+        // For simplicity, let's use a large static array (assuming path < 1000 steps).
+        
+        typedef struct { int x, y, m; } PathStep;
+        PathStep* pathTrace = (PathStep*)malloc(sizeof(PathStep) * (rows * cols * 4)); 
+        int stepCount = 0;
+
+        size_t curr = finalStateIdx;
+
+        // Backtracking Loop
+        while (curr != SIZE_MAX) {
+            int r, c, m, mk;
+            DecodeIndex(curr, &r, &c, &m, &mk, cols, maxMask);
+            
+            pathTrace[stepCount].x = c;
+            pathTrace[stepCount].y = r;
+            pathTrace[stepCount].m = m;
+            stepCount++;
+
+            curr = parent[curr]; // Move to previous node
+        }
+
+        // Print in Reverse (Start -> End)
+        int stepNum = 0;
+        for (int i = stepCount - 1; i >= 0; i--) {
+            printf("Step %d: (%d, %d) [Mode %d]", 
+                   stepNum++, 
+                   pathTrace[i].x, 
+                   pathTrace[i].y, 
+                   pathTrace[i].m);
+            
+            // Check if this step is an objective
+            for(int k=0; k<objCount; k++){
+                if(objectives[k].x == pathTrace[i].x && objectives[k].y == pathTrace[i].y){
+                    printf(" <--- VISITED OBJECTIVE %d", k+1);
+                }
+            }
+            printf("\n");
+        }
+        free(pathTrace);
+
+    } else {
+        printf("FAILURE: Could not reach all objectives.\n");
+    }
+    printf("-------------------------------\n");
+
+    free(dist);
+    free(parent);
+    freeHeap(pq);
+}
+
 int main(void) {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
     InitWindow(screenWidth, screenHeight, "Pathfinder GUI");
     
     mazeLoaded = false;
     accessChecked = false;
+    solvedTSP = false;
     
     // read input
     if(!mazeLoaded) mazeLoaded = LoadMaze("input.txt");
@@ -392,6 +627,7 @@ int main(void) {
             if(!accessChecked) {
                 CheckAccessibility();
                 accessChecked = true;
+                SolveTSP_Exact();
             }
             if (IsKeyPressed(KEY_ENTER)) {
                 break;
