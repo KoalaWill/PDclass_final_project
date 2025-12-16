@@ -17,12 +17,12 @@
       "-std=c++17",
       "-c",
       "-o",
-      "obj/x64/Debug/PDclass_final_project/resource_dir.o",
+      "obj/x64/Debug/PD_final_project/resource_dir.o",
       "../../include/resource_dir.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/include/resource_dir.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/PDclass_final_project/resource_dir.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/include/resource_dir.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/PD_final_project/resource_dir.o"
   },
   {
     "arguments": [
@@ -42,12 +42,12 @@
       "-std=c++17",
       "-c",
       "-o",
-      "obj/x64/Debug/PDclass_final_project/main.o",
+      "obj/x64/Debug/PD_final_project/main.o",
       "../../src/main.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/src/main.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/PDclass_final_project/main.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/src/main.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/PD_final_project/main.o"
   },
   {
     "arguments": [
@@ -66,9 +66,9 @@
       "obj/x64/Debug/raylib/config.o",
       "../external/raylib-master/src/config.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/config.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/config.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/config.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/config.o"
   },
   {
     "arguments": [
@@ -87,9 +87,9 @@
       "obj/x64/Debug/raylib/raylib.o",
       "../external/raylib-master/src/raylib.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/raylib.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/raylib.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/raylib.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/raylib.o"
   },
   {
     "arguments": [
@@ -108,9 +108,9 @@
       "obj/x64/Debug/raylib/raymath.o",
       "../external/raylib-master/src/raymath.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/raymath.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/raymath.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/raymath.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/raymath.o"
   },
   {
     "arguments": [
@@ -129,9 +129,9 @@
       "obj/x64/Debug/raylib/rcamera.o",
       "../external/raylib-master/src/rcamera.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rcamera.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rcamera.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rcamera.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rcamera.o"
   },
   {
     "arguments": [
@@ -150,9 +150,9 @@
       "obj/x64/Debug/raylib/rgestures.o",
       "../external/raylib-master/src/rgestures.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rgestures.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rgestures.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rgestures.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rgestures.o"
   },
   {
     "arguments": [
@@ -171,9 +171,9 @@
       "obj/x64/Debug/raylib/rlgl.o",
       "../external/raylib-master/src/rlgl.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rlgl.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rlgl.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rlgl.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rlgl.o"
   },
   {
     "arguments": [
@@ -192,9 +192,9 @@
       "obj/x64/Debug/raylib/utils.o",
       "../external/raylib-master/src/utils.h"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/utils.h",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/utils.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/utils.h",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/utils.o"
   },
   {
     "arguments": [
@@ -213,9 +213,9 @@
       "obj/x64/Debug/raylib/raudio.o",
       "../external/raylib-master/src/raudio.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/raudio.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/raudio.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/raudio.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/raudio.o"
   },
   {
     "arguments": [
@@ -234,9 +234,9 @@
       "obj/x64/Debug/raylib/rcore.o",
       "../external/raylib-master/src/rcore.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rcore.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rcore.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rcore.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rcore.o"
   },
   {
     "arguments": [
@@ -255,9 +255,9 @@
       "obj/x64/Debug/raylib/rglfw.o",
       "../external/raylib-master/src/rglfw.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rglfw.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rglfw.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rglfw.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rglfw.o"
   },
   {
     "arguments": [
@@ -276,9 +276,9 @@
       "obj/x64/Debug/raylib/rmodels.o",
       "../external/raylib-master/src/rmodels.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rmodels.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rmodels.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rmodels.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rmodels.o"
   },
   {
     "arguments": [
@@ -297,9 +297,9 @@
       "obj/x64/Debug/raylib/rshapes.o",
       "../external/raylib-master/src/rshapes.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rshapes.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rshapes.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rshapes.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rshapes.o"
   },
   {
     "arguments": [
@@ -318,9 +318,9 @@
       "obj/x64/Debug/raylib/rtext.o",
       "../external/raylib-master/src/rtext.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rtext.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rtext.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rtext.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rtext.o"
   },
   {
     "arguments": [
@@ -339,9 +339,9 @@
       "obj/x64/Debug/raylib/rtextures.o",
       "../external/raylib-master/src/rtextures.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/rtextures.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/rtextures.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/rtextures.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/rtextures.o"
   },
   {
     "arguments": [
@@ -360,8 +360,8 @@
       "obj/x64/Debug/raylib/utils.o",
       "../external/raylib-master/src/utils.c"
     ],
-    "directory": "D:/PDclass_final_project/build/build_files",
-    "file": "D:/PDclass_final_project/build/external/raylib-master/src/utils.c",
-    "output": "D:/PDclass_final_project/build/build_files/obj/x64/Debug/raylib/utils.o"
+    "directory": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files",
+    "file": "C:/School_work/University/Courses/Programming/PD_final_project/build/external/raylib-master/src/utils.c",
+    "output": "C:/School_work/University/Courses/Programming/PD_final_project/build/build_files/obj/x64/Debug/raylib/utils.o"
   },
 ]

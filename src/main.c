@@ -7,20 +7,20 @@
 
 #include "resource_dir.h"
 
-// Constant definitions
+// constants
 #define MAX_COLS 30
 #define MAX_ROWS 30
 #define MAX_OBJ_COUNT 100
 #define INIT_HEAP_CAPACITY 4000
 #define PLAYBACK_FRAME_INTERVAL 10
 
-// Coordinate index macros (reused)
+// coordinate index
 #define GET_IDX(r, c, m, mk, cols, maxMask) \
     ((size_t)(r) * cols * 4 * maxMask + (size_t)(c) * 4 * maxMask + (size_t)(m) * maxMask + mk)
 #define IDX_POS(r, c, m, cols) \
     ((size_t)(r) * cols * 4 + (size_t)(c) * 4 + m)
 
-// Movement rules: [mode][dir][0:new_mode, 1:dx, 2:dy, 3:fuel]
+// [mode][dir][0:new_mode, 1:dx, 2:dy, 3:fuel]
 const int Mode_Movement_Fuel[4][8][4] = {
     {{0,0,1,1},{0,0,-1,1},{0,1,0,3},{0,-1,0,3},{1,2,0,3},{1,1,1,3},{3,0,2,3},{3,-1,1,3}},
     {{1,1,0,1},{1,-1,0,1},{1,0,-1,3},{1,0,1,3},{2,0,2,3},{2,-1,1,3},{0,-2,0,3},{0,-1,-1,3}},
@@ -28,7 +28,7 @@ const int Mode_Movement_Fuel[4][8][4] = {
     {{3,-1,0,1},{3,1,0,1},{3,0,1,3},{3,0,-1,3},{0,0,-2,3},{0,1,-1,3},{2,2,0,3},{2,1,1,3}}
 };
 
-// Application state machine
+// state machine
 typedef enum { 
     StartMenu = 0, 
     MazeConfirm,
@@ -36,8 +36,7 @@ typedef enum {
     PathPlayback
 } AppScreen;
 
-// Data structure definitions
-// Queue for BFS accessibility check
+// structures
 typedef struct {
     int x, y, mode;
 } State;
@@ -47,47 +46,42 @@ typedef struct {
     int capacity;
 } Queue;
 
-// Priority queue node for Dijkstra/TSP
+
 typedef struct {
     int x, y;
     int mode;
-    int mask;   // Bitmask: marks visited targets
-    int cost;   // Accumulated fuel cost
+    int mask;   // bitmask
+    int cost;
 } PQNode;
-
-// Min-Heap implementation
 typedef struct {
     PQNode *nodes;
     int size;
     int capacity;
 } MinHeap;
 
-// Path step for playback/stitching
+// step for playback
 typedef struct { int x, y, m; } PathStep;
 
-// Objective structure
 typedef struct { int x, y; bool reachable; } Objective;
 
-// Active target for TSP
 typedef struct { 
     int x, y; 
     int originalIdx; 
 } ActiveTarget;
 
-// Global variables (grouped by function)
-// Window related
+// window
 const int screenWidth = 1280;
 const int screenHeight = 800;
 int currentX, currentY;
 
-// Maze related
+// maze
 int **maze = NULL;
 int rows = 0, cols = 0;
 bool mazeLoaded = false;
 int mazeDisplayMargin, availableWidth, availableHeight, cellSize;
 int mazePixelWidth, mazePixelHeight, offsetX, offsetY;
 
-// Accessibility check related
+// accessibility check
 Queue* q = NULL;
 State start_state;
 Objective objectives[MAX_OBJ_COUNT]; 
@@ -96,7 +90,7 @@ bool visited[MAX_ROWS][MAX_COLS][4];
 int reachableCount = 0;
 bool accessChecked = false;
 
-// TSP related
+// TSP
 int *tspDist = NULL;
 size_t *tspParent = NULL;
 PathStep* tspPathTrace = NULL;
@@ -104,12 +98,11 @@ int tspStepCount = 0;
 bool solvedTSP = false;
 int totalFuelCost = 0;
 
-// Playback related
+// playback
 int currentPlaybackStep = 0;
 int playbackFrameCounter = 0;
 bool playbackFinished = false;
 
-// Helper: Queue operations
 Queue* createQueue(int capacity) {
     Queue* q = (Queue*)malloc(sizeof(Queue));
     q->items = (State*)malloc(sizeof(State) * capacity);
@@ -122,7 +115,7 @@ void enqueue(Queue* q, State s) { q->items[q->tail++] = s; }
 State dequeue(Queue* q) { return q->items[q->head++]; }
 void freeQueue(Queue* q) { free(q->items); free(q); }
 
-// Helper: Min-Heap operations
+
 MinHeap* createMinHeap(int capacity) {
     MinHeap* h = (MinHeap*)malloc(sizeof(MinHeap));
     h->nodes = (PQNode*)malloc(sizeof(PQNode) * capacity);
@@ -162,7 +155,6 @@ PQNode popHeap(MinHeap* h) {
 }
 void freeHeap(MinHeap* h) { free(h->nodes); free(h); }
 
-// Helper: Get car body coordinates
 void GetCarBody(int mode, int body[6][2]) {
     switch(mode) {
         case 0: { int b[6][2]={{0,0},{1,0},{0,1},{1,1},{0,2},{1,2}}; memcpy(body, b, sizeof(b)); break; }
@@ -172,7 +164,6 @@ void GetCarBody(int mode, int body[6][2]) {
     }
 }
 
-// Helper: Check car collision
 int CheckCarCollision(int x, int y, int mode) {
     int body[6][2]; 
     GetCarBody(mode, body);
@@ -185,7 +176,6 @@ int CheckCarCollision(int x, int y, int mode) {
     return 1;
 }
 
-// Helper: Generic Dijkstra
 int Dijkstra(int startX, int startY, int startMode, int targetX, int targetY, PathStep** outPath, int* outStepCount) {
     size_t totalStates = (size_t)rows * cols * 4;
     int *dist = (int*)malloc(totalStates * sizeof(int));
@@ -208,8 +198,6 @@ int Dijkstra(int startX, int startY, int startMode, int targetX, int targetY, Pa
         PQNode u = popHeap(pq);
         size_t uIdx = IDX_POS(u.y, u.x, u.mode, cols);
         if(u.cost > dist[uIdx]) continue;
-
-        // Check if target reached (body covers target)
         int body[6][2];
         GetCarBody(u.mode, body);
         bool hit = false;
@@ -218,14 +206,11 @@ int Dijkstra(int startX, int startY, int startMode, int targetX, int targetY, Pa
                 hit = true; break;
             }
         }
-
         if(hit) {
             finalCost = u.cost;
             endStateIdx = uIdx;
             break; 
         }
-
-        // Iterate all movement directions
         for(int i=0; i<8; i++) {
             int nextMode = Mode_Movement_Fuel[u.mode][i][0];
             int dx = Mode_Movement_Fuel[u.mode][i][1];
@@ -248,22 +233,19 @@ int Dijkstra(int startX, int startY, int startMode, int targetX, int targetY, Pa
         }
     }
 
-    // Reconstruct path (if output needed)
+    // reconstruct
     if(outPath && outStepCount && finalCost != -1) {
         PathStep tempBuff[2000]; 
         int steps = 0;
         size_t curr = endStateIdx;
-
-        // Backtrack path (end to start)
         while(curr != startIdx && curr != SIZE_MAX) {
             int r = (curr / 4) / cols;
             int c = (curr / 4) % cols;
             int m = curr % 4;
             tempBuff[steps++] = (PathStep){c, r, m};
             curr = parent[curr];
-        }
-        
-        // Reverse path (start to end)
+        } 
+        // reverse
         *outStepCount = steps;
         *outPath = (PathStep*)malloc(sizeof(PathStep) * steps);
         for(int k = steps - 1; k >= 0; k--) {
@@ -277,7 +259,7 @@ int Dijkstra(int startX, int startY, int startMode, int targetX, int targetY, Pa
     return finalCost;
 }
 
-// UI drawing functions
+// UI
 void DrawGradientTitle() {
     const char *ascii_art[] = {
         " ________  ________  _________  ___  ___  ________ ___  ________   ________  _______   ________   ",
@@ -339,7 +321,6 @@ void DrawBlinkHint() {
     }
 }
 
-// Maze loading & drawing
 bool LoadMaze(const char *filename) {
     rows = 0; cols = 0;
     bool col_calculated = false;
@@ -347,8 +328,6 @@ bool LoadMaze(const char *filename) {
     
     FILE *inf = fopen(filename, "r");
     if (inf == NULL) return false;
-    
-    // Count rows and columns
     while (1) {
         ch = fgetc(inf);
         if (ch != '\n' && ch != EOF) {
@@ -362,14 +341,10 @@ bool LoadMaze(const char *filename) {
             rows++;
         }
     }
-    
-    // Allocate maze memory
     maze = (int **)malloc(rows * sizeof(int *));
     for (int i = 0; i < rows; i++) {
         maze[i] = (int *)malloc(cols * sizeof(int));
     }
-    
-    // Read maze data
     rewind(inf);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -378,7 +353,6 @@ bool LoadMaze(const char *filename) {
                 start_state.x = j;
                 start_state.y = i;
                 start_state.mode = 0;
-                // Adjust start mode based on car length
                 if (j >= 2 && maze[i][j-1] == 2 && maze[i][j-2] == 2) {
                     start_state.mode = 3;
                     start_state.x = j-2;
@@ -430,14 +404,12 @@ void DrawMazeGrid() {
     DrawText("PRESS [ENTER] TO CONFIRM MAZE MAP", 10, 10, 20, LIGHTGRAY);
 }
 
-// Accessibility check (BFS)
+// accessibility check (BFS)
 void CheckAccessibility() {
     q = createQueue(MAX_ROWS * MAX_COLS * 4);
     objCount=0;
     memset(visited, 0, sizeof(visited));
     reachableCount = 0;
-
-    // Collect all objectives
     for(int r=0; r<rows; r++){
         for(int c=0; c<cols; c++){
             if(maze[r][c] == 3) {
@@ -448,18 +420,12 @@ void CheckAccessibility() {
             }
         }
     }
-    
-    // Enqueue initial state
     if (CheckCarCollision(start_state.x, start_state.y, start_state.mode)) {
         visited[start_state.y][start_state.x][0] = true;
         enqueue(q, start_state);
     }
-    
-    // BFS core logic
     while (!isQueueEmpty(q)) {
         State current = dequeue(q);
-        
-        // Mark reachable objectives
         if (maze[current.y][current.x] == 3) {
              for(int i=0; i<objCount; i++) {
                 if(objectives[i].x == current.x && objectives[i].y == current.y && !objectives[i].reachable) {
@@ -467,8 +433,6 @@ void CheckAccessibility() {
                 }
             }
         }
-
-        // Iterate all movement directions
         for (int i = 0; i < 8; i++) {
             int nextMode = Mode_Movement_Fuel[current.mode][i][0];
             int dx = Mode_Movement_Fuel[current.mode][i][1];
@@ -483,8 +447,6 @@ void CheckAccessibility() {
             }
         }
     }
-    
-    // Count reachable objectives
     for(int i=0; i<objCount; i++) {
         if(objectives[i].reachable) reachableCount++;
         else maze[objectives[i].y][objectives[i].x] = 1;
@@ -550,7 +512,6 @@ void SolveTSP_Exact() {
     ActiveTarget activeTargets[MAX_COLS * MAX_ROWS];
     int activeCount = 0;
 
-    // Collect reachable objectives
     for (int i = 0; i < objCount; i++) {
         if (objectives[i].reachable) {
             activeTargets[activeCount].x = objectives[i].x;
@@ -561,14 +522,10 @@ void SolveTSP_Exact() {
     }
 
     if (activeCount == 0) { printf("No reachable objectives.\n"); return; }
-
-    // Free old data
     if (tspDist) free(tspDist);
     if (tspParent) free(tspParent);
     if (tspPathTrace) { free(tspPathTrace); tspPathTrace = NULL; }
     tspStepCount = 0;
-    
-    // Init bitmask arrays
     int maxMask = (1 << activeCount);
     size_t totalStates = (size_t)rows * cols * 4 * maxMask;
     tspDist = (int*)malloc(totalStates * sizeof(int));
@@ -580,14 +537,10 @@ void SolveTSP_Exact() {
         tspDist[i] = INT_MAX;
         tspParent[i] = SIZE_MAX;
     }
-
-    // Init priority queue
     MinHeap* pq = createMinHeap(INIT_HEAP_CAPACITY);
     int startMask = 0;
     int startBody[6][2];
     GetCarBody(start_state.mode, startBody);
-
-    // Calculate initial mask (start covers targets)
     for (int b = 0; b < 6; b++) {
         int cx = start_state.x + startBody[b][0];
         int cy = start_state.y + startBody[b][1];
@@ -598,15 +551,12 @@ void SolveTSP_Exact() {
         }
     }
 
-    // Enqueue start
     size_t startIdx = GET_IDX(start_state.y, start_state.x, start_state.mode, startMask, cols, maxMask);
     tspDist[startIdx] = 0;
     pushHeap(pq, (PQNode){start_state.x, start_state.y, start_state.mode, startMask, 0});
 
     size_t finalStateIdx = SIZE_MAX;
     int finalMinCost = -1;
-
-    // Dijkstra core (Bitmask)
     while (pq->size > 0) {
         PQNode u = popHeap(pq);
         size_t uIdx = GET_IDX(u.y, u.x, u.mode, u.mask, cols, maxMask);
@@ -617,8 +567,6 @@ void SolveTSP_Exact() {
             finalStateIdx = uIdx;
             break; 
         }
-
-        // Iterate all movement directions
         for (int i = 0; i < 8; i++) {
             int nextMode = Mode_Movement_Fuel[u.mode][i][0];
             int dx = Mode_Movement_Fuel[u.mode][i][1];
@@ -632,7 +580,6 @@ void SolveTSP_Exact() {
                     int newCost = u.cost + fuel;
                     int newMask = u.mask;
 
-                    // Update mask (new position covers targets)
                     int body[6][2];
                     GetCarBody(nextMode, body);
                     for (int b = 0; b < 6; b++) {
@@ -656,7 +603,7 @@ void SolveTSP_Exact() {
         }
     }
 
-    // Reconstruct path
+    // Reconstruct
     if (finalMinCost != -1) {
         totalFuelCost = finalMinCost;
         printf("SUCCESS: Optimal path found! Total Fuel: %d\n", finalMinCost);
@@ -749,7 +696,7 @@ int StitchPath(int startX, int startY, int startMode, int targetX, int targetY) 
     int cost = Dijkstra(startX, startY, startMode, targetX, targetY, &tempPath, &tempStepCount);
 
     if(cost != -1 && tempPath) {
-        // Stitch path to global trace
+        // stitch path to global trace
         tspPathTrace = (PathStep*)realloc(tspPathTrace, sizeof(PathStep) * (tspStepCount + tempStepCount));
         memcpy(tspPathTrace + tspStepCount, tempPath, sizeof(PathStep) * tempStepCount);
         tspStepCount += tempStepCount;
@@ -764,7 +711,6 @@ void SolveTSP_Approx() {
     ActiveTarget activeTargets[MAX_COLS * MAX_ROWS];
     int activeCount = 0;
 
-    // Collect reachable objectives
     for (int i = 0; i < objCount; i++) {
         if (objectives[i].reachable) {
             activeTargets[activeCount].x = objectives[i].x;
@@ -775,15 +721,12 @@ void SolveTSP_Approx() {
     }
     if(activeCount == 0) return;
 
-    // Build node list (start + targets + dummy)
     int numRealNodes = activeCount + 1;
     int totalNodes = numRealNodes + 1;
     ActiveTarget allNodes[MAX_COLS * MAX_ROWS];
     allNodes[0].x = start_state.x; 
     allNodes[0].y = start_state.y;
     for(int i=0; i<activeCount; i++) allNodes[i+1] = activeTargets[i];
-
-    // Build cost matrix
     int *costMat = (int*)malloc(totalNodes * totalNodes * sizeof(int));
     memset(costMat, 0, totalNodes * totalNodes * sizeof(int));
     for(int i=0; i<numRealNodes; i++) {
@@ -793,8 +736,6 @@ void SolveTSP_Approx() {
             costMat[j*totalNodes + i] = c;
         }
     }
-
-    // Connect dummy node (handle odd degrees)
     int dummy = totalNodes - 1;
     costMat[0 * totalNodes + dummy] = 999999;
     costMat[dummy * totalNodes + 0] = 999999;
@@ -803,11 +744,9 @@ void SolveTSP_Approx() {
         costMat[dummy * totalNodes + i] = 0;
     }
 
-    // Build MST
     int *mstParent = (int*)malloc(totalNodes * sizeof(int));
     GetMST(totalNodes, costMat, mstParent);
 
-    // Build multigraph (MST + Min Matching)
     int *multiGraph = (int*)calloc(totalNodes * totalNodes, sizeof(int));
     int *degrees = (int*)calloc(totalNodes, sizeof(int));
     for(int i=1; i<totalNodes; i++) {
@@ -820,7 +759,6 @@ void SolveTSP_Approx() {
         }
     }
 
-    // Min matching (handle odd degree nodes)
     int *odds = (int*)malloc(totalNodes * sizeof(int));
     int oddCount = 0;
     for(int i=0; i<totalNodes; i++) if(degrees[i] % 2 != 0) odds[oddCount++] = i;
@@ -845,12 +783,12 @@ void SolveTSP_Approx() {
         }
     }
 
-    // Find Euler Tour
+    //  Euler tour
     int *circuit = (int*)malloc(totalNodes * 2 * sizeof(int));
     int circuitSize = 0;
     FindEulerTour(totalNodes, multiGraph, circuit, &circuitSize);
 
-    // Extract TSP path (remove duplicates)
+    // extract TSP path (remove duplicates)
     int *visitOrder = (int*)malloc(totalNodes * sizeof(int));
     bool *visitedMap = (bool*)calloc(totalNodes, sizeof(bool));
     int orderCount = 0;
@@ -863,7 +801,7 @@ void SolveTSP_Approx() {
         }
     }
 
-    // Stitch physical path
+    // stitch physical path
     tspPathTrace = (PathStep*)malloc(sizeof(PathStep) * (rows * cols * 4 * activeCount * 5)); 
     tspStepCount = 0;
     totalFuelCost = 0;
@@ -888,7 +826,7 @@ void SolveTSP_Approx() {
         }
     }
 
-    // Reverse path (fit playback logic)
+    // reverse path
     for(int i = 0; i < tspStepCount / 2; i++) {
         PathStep temp = tspPathTrace[i];
         tspPathTrace[i] = tspPathTrace[tspStepCount - 1 - i];
@@ -897,7 +835,6 @@ void SolveTSP_Approx() {
 
     printf("Approximation Complete. Total Steps: %d, Cost: %d\n", tspStepCount, totalFuelCost);
 
-    // Free memory
     free(costMat);
     free(mstParent);
     free(multiGraph);
@@ -909,7 +846,7 @@ void SolveTSP_Approx() {
     free(visitedMap);
 }
 
-// Draw path playback
+// playback
 void DrawPathPlayback() {
     DrawMazeGrid(); 
     DrawRectangle(0, 0, screenWidth, 40, BLACK);
@@ -917,14 +854,13 @@ void DrawPathPlayback() {
 
     if (!solvedTSP || tspPathTrace == NULL || tspStepCount == 0) return;
 
-    // Calculate current playback step index
     int traceIndex = tspStepCount - 1 - currentPlaybackStep;
     if (traceIndex >= 0) {
         PathStep step = tspPathTrace[traceIndex];
         int body[6][2];
         GetCarBody(step.m, body);
 
-        // Draw vehicle
+        // draw vehicle
         for(int i=0; i<6; i++) {
             int cx = step.x + body[i][0];
             int cy = step.y + body[i][1];
@@ -945,17 +881,14 @@ void DrawPathPlayback() {
     DrawText(prompt, screenWidth - MeasureText(prompt, 20) - 20, 10, 20, GRAY);
 }
 
-// Main function
 int main(void) {
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
     InitWindow(screenWidth, screenHeight, "Pathfinder GUI");
     
-    // Load maze
     mazeLoaded = LoadMaze("input.txt");
     AppScreen currentScreen = StartMenu;
 
     while (!WindowShouldClose()) {
-        // State machine control
         if (currentScreen == StartMenu) {
             if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 currentScreen = MazeConfirm;
@@ -971,7 +904,6 @@ int main(void) {
                 CheckAccessibility();
                 accessChecked = true;
                 if (reachableCount > 0) {
-                    // Select algorithm based on objective count
                     if (reachableCount < 15) SolveTSP_Exact();
                     else SolveTSP_Approx();
                 } else {
@@ -991,7 +923,6 @@ int main(void) {
             }
         }
         else if (currentScreen == PathPlayback) {
-            // Playback animation logic
             if (!playbackFinished) {
                 playbackFrameCounter++;
                 if (playbackFrameCounter >= PLAYBACK_FRAME_INTERVAL) {
@@ -1003,7 +934,6 @@ int main(void) {
             if (IsKeyPressed(KEY_ENTER)) break;
         }
 
-        // Drawing logic
         BeginDrawing();
             ClearBackground(BLACK);
             switch(currentScreen) {
@@ -1019,7 +949,6 @@ int main(void) {
         EndDrawing();
     }
 
-    // Memory cleanup
     free(tspDist);
     free(tspParent);
     free(tspPathTrace);
