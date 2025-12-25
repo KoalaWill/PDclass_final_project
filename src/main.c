@@ -664,8 +664,8 @@ void GetMST(int nodeCount, int *costMatrix, int *parentOut) {
 
 void FindEulerTour(int nodeCount, int *adjMatrix, int *circuit, int *circuitSize) {
     int *stack = (int*)malloc(nodeCount * nodeCount * sizeof(int)); 
-    int top = -1;
-    stack[++top] = 0;
+    int top = 0;
+    stack[top] = 0;
     int pathIdx = 0;
     
     int *tempAdj = (int*)malloc(nodeCount * nodeCount * sizeof(int));
@@ -681,7 +681,8 @@ void FindEulerTour(int nodeCount, int *adjMatrix, int *circuit, int *circuitSize
             tempAdj[curr_v * nodeCount + neighbor]--;
             tempAdj[neighbor * nodeCount + curr_v]--;
             stack[++top] = neighbor;
-        } else {
+        } 
+        else {
             circuit[pathIdx++] = stack[top--];
         }
     }
@@ -721,8 +722,8 @@ void SolveTSP_Approx() {
     }
     if(activeCount == 0) return;
 
-    int numRealNodes = activeCount + 1;
-    int totalNodes = numRealNodes + 1;
+    int numRealNodes = activeCount + 1; // add start
+    int totalNodes = numRealNodes + 1; // add dummy
     ActiveTarget allNodes[MAX_COLS * MAX_ROWS];
     allNodes[0].x = start_state.x; 
     allNodes[0].y = start_state.y;
@@ -788,6 +789,8 @@ void SolveTSP_Approx() {
     int circuitSize = 0;
     FindEulerTour(totalNodes, multiGraph, circuit, &circuitSize);
 
+    // circuit is reversed
+
     // extract TSP path (remove duplicates)
     int *visitOrder = (int*)malloc(totalNodes * sizeof(int));
     bool *visitedMap = (bool*)calloc(totalNodes, sizeof(bool));
@@ -826,12 +829,6 @@ void SolveTSP_Approx() {
         }
     }
 
-    // reverse path
-    for(int i = 0; i < tspStepCount / 2; i++) {
-        PathStep temp = tspPathTrace[i];
-        tspPathTrace[i] = tspPathTrace[tspStepCount - 1 - i];
-        tspPathTrace[tspStepCount - 1 - i] = temp;
-    }
 
     printf("Approximation Complete. Total Steps: %d, Cost: %d\n", tspStepCount, totalFuelCost);
 
@@ -854,8 +851,8 @@ void DrawPathPlayback() {
 
     if (!solvedTSP || tspPathTrace == NULL || tspStepCount == 0) return;
 
-    int traceIndex = tspStepCount - 1 - currentPlaybackStep;
-    if (traceIndex >= 0) {
+    int traceIndex = currentPlaybackStep;
+    if (traceIndex <= tspStepCount - 1) {
         PathStep step = tspPathTrace[traceIndex];
         int body[6][2];
         GetCarBody(step.m, body);
