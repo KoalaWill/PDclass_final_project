@@ -622,6 +622,13 @@ void SolveTSP_Exact() {
             curr = tspParent[curr];
         }
 
+        // Reverse
+        for(int i=0; i<tempCount/2; i++) {
+            PathStep temp = tspPathTrace[i];
+            tspPathTrace[i] = tspPathTrace[tempCount - i - 1];
+            tspPathTrace[tempCount - i - 1] = temp;
+        }
+
         tspStepCount = tempCount;
     } else {
         printf("FAILURE: Could not reach all active targets.\n");
